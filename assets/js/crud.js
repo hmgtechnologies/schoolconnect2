@@ -17,8 +17,8 @@ const CRUD = {
   SCHEMA: {
     students: { table:'students', title:'Student', cols:[
       {key:'full_name',label:'Full name',type:'text',required:true},
-      {key:'admission_no',label:'Admission No',type:'text'},
-      {key:'class',label:'Class',type:'text'},
+      {key:'admission_no',label:'Admission No',type:'text',readonly:true,help:'AUTO-GENERATED on save — leave blank',placeholder:'(auto)'},
+      {key:'class',label:'Class',type:'ref',refTable:'classes',refValue:'name'},
       {key:'arm',label:'Arm',type:'text'},
       {key:'gender',label:'Gender',type:'select',options:['male','female']},
       {key:'date_of_birth',label:'Date of birth',type:'date'},
@@ -31,10 +31,20 @@ const CRUD = {
     ]},
     staff: { table:'staff', title:'Staff', cols:[
       {key:'full_name',label:'Full name',type:'text',required:true},
+      {key:'staff_no',label:'Staff No',type:'text',readonly:true,help:'AUTO-GENERATED on save — leave blank',placeholder:'(auto)'},
       {key:'email',label:'Email',type:'email'},
       {key:'phone',label:'Phone',type:'tel'},
-      {key:'role',label:'Role',type:'text'},
-      {key:'department',label:'Department',type:'text'},
+      {key:'staff_type',label:'Staff type',type:'select',options:['teaching','non-teaching']},
+      {key:'role',label:'Role / Designation',type:'text',help:'e.g. Class teacher, Bursar, Registrar'},
+      {key:'department',label:'Department',type:'ref',refTable:'departments',refValue:'name'},
+      {key:'subject_taught',label:'Subject(s) taught',type:'ref',refTable:'subjects',refValue:'name',refStore:'value',help:'Leave blank for non-teaching staff'},
+      {key:'qualification',label:'Highest qualification',type:'select',options:['SSCE','OND','HND','NCE','B.Sc','B.Ed','B.A','PGDE','M.Sc','M.Ed','M.A','Ph.D','Other']},
+      {key:'gender',label:'Gender',type:'select',options:['male','female']},
+      {key:'religion',label:'Religion',type:'select',options:['Christianity','Islam','Traditional','Other']},
+      {key:'marital_status',label:'Marital status',type:'select',options:['single','married','divorced','widowed']},
+      {key:'date_of_birth',label:'Date of birth',type:'date'},
+      {key:'address',label:'Address',type:'textarea'},
+      {key:'photo_url',label:'Photo (Google Drive / link)',type:'text',help:'Paste a Drive link — no upload (saves storage)'},
       {key:'part_time',label:'Part-time',type:'checkbox'},
       {key:'leave_balance',label:'Leave balance',type:'number'},
       {key:'status',label:'Status',type:'select',options:['active','inactive']}
@@ -42,25 +52,26 @@ const CRUD = {
     classes: { table:'classes', title:'Class', cols:[
       {key:'name',label:'Class name',type:'text',required:true},
       {key:'arm',label:'Arm',type:'text'},
-      {key:'level',label:'Level',type:'text'},
-      {key:'class_teacher',label:'Class teacher',type:'text'},
+      {key:'level',label:'Level',type:'select',options:['Pre-Nursery','Nursery','Primary','JSS','SSS','Other']},
+      {key:'class_teacher',label:'Class teacher (pick from staff)',type:'ref',refTable:'staff',refValue:'full_name',refStore:'value',refFilter:{staff_type:'teaching'}},
       {key:'capacity',label:'Capacity',type:'number'}
     ]},
     subjects: { table:'subjects', title:'Subject', cols:[
       {key:'name',label:'Subject',type:'text',required:true},
       {key:'code',label:'Code',type:'text'},
-      {key:'department',label:'Department',type:'text'},
-      {key:'level',label:'Level',type:'text'}
+      {key:'department',label:'Department',type:'ref',refTable:'departments',refValue:'name'},
+      {key:'level',label:'Level',type:'select',options:['Nursery','Primary','JSS','SSS','All']},
+      {key:'teacher',label:'Subject teacher (pick from staff)',type:'ref',refTable:'staff',refValue:'full_name',refStore:'value',refFilter:{staff_type:'teaching'},help:'Maps this subject to a teacher'}
     ]},
     attendance: { table:'attendance', title:'Attendance', cols:[
-      {key:'student_name',label:'Student',type:'ref',refTable:'students',refValue:'full_name',refExtra:['class'],refStore:'value',autofill:{class:'class'}},
+      {key:'student_name',label:'Student',type:'ref',refTable:'students',refValue:'full_name',refExtra:['class'],refStore:'value',groupBy:'class',autofill:{class:'class'}},
       {key:'class',label:'Class',type:'ref',refTable:'classes',refValue:'name'},
       {key:'date',label:'Date',type:'date',required:true},
       {key:'status',label:'Status',type:'select',options:['present','absent','late','excused']},
       {key:'time_in',label:'Time in',type:'time'}
     ]},
     results: { table:'results', title:'Result', cols:[
-      {key:'student_name',label:'Student',type:'ref',refTable:'students',refValue:'full_name',refExtra:['class'],refStore:'value',autofill:{class:'class'}},
+      {key:'student_name',label:'Student',type:'ref',refTable:'students',refValue:'full_name',refExtra:['class'],refStore:'value',groupBy:'class',autofill:{class:'class'}},
       {key:'subject',label:'Subject',type:'ref',refTable:'subjects',refValue:'name',refStore:'value',required:true},
       {key:'class',label:'Class',type:'ref',refTable:'classes',refValue:'name'},
       {key:'term',label:'Term',type:'lookup',lookupKind:'term'},
@@ -100,26 +111,40 @@ const CRUD = {
       {key:'drive_link',label:'Drive link',type:'text'}
     ]},
     conduct: { table:'conduct', title:'Conduct record', cols:[
-      {key:'student_name',label:'Student',type:'ref',refTable:'students',refValue:'full_name',refStore:'value'},
+      {key:'student_name',label:'Student',type:'ref',refTable:'students',refValue:'full_name',refExtra:['class'],refStore:'value',groupBy:'class'},
       {key:'type',label:'Type',type:'select',options:['merit','demerit','incident']},
       {key:'description',label:'Description',type:'textarea'},{key:'reporter',label:'Reporter',type:'text'},
       {key:'date',label:'Date',type:'date'}
     ]},
     health: { table:'health', title:'Health record', cols:[
-      {key:'student_name',label:'Student',type:'ref',refTable:'students',refValue:'full_name',refStore:'value'},
+      {key:'student_name',label:'Student',type:'ref',refTable:'students',refValue:'full_name',refExtra:['class'],refStore:'value',groupBy:'class'},
       {key:'complaint',label:'Complaint',type:'text'},
       {key:'treatment',label:'Treatment',type:'textarea'},{key:'date',label:'Date',type:'date'},
       {key:'recorded_by',label:'Recorded by',type:'text'}
     ]},
     promotion: { table:'promotions', title:'Promotion', cols:[
-      {key:'student_name',label:'Student',type:'ref',refTable:'students',refValue:'full_name',refExtra:['class'],refStore:'value',autofill:{from_class:'class'}},
+      {key:'student_name',label:'Student',type:'ref',refTable:'students',refValue:'full_name',refExtra:['class'],refStore:'value',groupBy:'class',autofill:{from_class:'class'}},
       {key:'from_class',label:'From class',type:'text'},
       {key:'to_class',label:'To class',type:'ref',refTable:'classes',refValue:'name'},
-      {key:'action',label:'Action',type:'select',options:['promote','graduate','repeat','delete']},
+      {key:'average',label:'Term average %',type:'number',help:'auto-filled by Auto-promote'},
+      {key:'action',label:'Action',type:'select',options:['promote','graduate','repeat','pending','delete']},
+      {key:'status',label:'Status',type:'select',options:['draft','approved','applied']},
       {key:'session',label:'Session',type:'lookup',lookupKind:'session'},{key:'term',label:'Term',type:'lookup',lookupKind:'term'}
     ]},
+    digital_library: { table:'digital_library', title:'Digital Book / Reading', cols:[
+      {key:'title',label:'Book / Resource title',type:'text',required:true},
+      {key:'author',label:'Author',type:'text'},
+      {key:'subject',label:'Subject',type:'ref',refTable:'subjects',refValue:'name',refStore:'value'},
+      {key:'class',label:'Assigned class',type:'ref',refTable:'classes',refValue:'name'},
+      {key:'read_link',label:'Read link (Google Drive / web)',type:'text',required:true,help:'Paste a Drive/web link — no upload (saves storage)'},
+      {key:'teacher',label:'Set by (teacher)',type:'ref',refTable:'staff',refValue:'full_name',refStore:'value',refFilter:{staff_type:'teaching'}},
+      {key:'instructions',label:'Reading instructions',type:'textarea'},
+      {key:'has_quiz',label:'Has comprehension questions',type:'checkbox'},
+      {key:'max_score',label:'Max score (counts to grade)',type:'number',help:'e.g. 10 — added to results as CA'},
+      {key:'due_date',label:'Due date',type:'date'}
+    ]},
     fees: { table:'fee_payments', title:'Fee payment', cols:[
-      {key:'student_name',label:'Student',type:'ref',refTable:'students',refValue:'full_name',refStore:'value',required:true},
+      {key:'student_name',label:'Student',type:'ref',refTable:'students',refValue:'full_name',refExtra:['class'],refStore:'value',groupBy:'class',required:true},
       {key:'amount_paid',label:'Amount paid',type:'number',required:true},
       {key:'method',label:'Method',type:'select',options:['cash','transfer','pos','online']},
       {key:'reference',label:'Reference',type:'text'},{key:'term',label:'Term',type:'lookup',lookupKind:'term'},{key:'session',label:'Session',type:'lookup',lookupKind:'session'}
@@ -213,7 +238,7 @@ const CRUD = {
       {key:'status',label:'Status',type:'select',options:['draft','submitted','approved']}
     ]},
     behaviour: { table:'behaviour_points', title:'Behaviour point', cols:[
-      {key:'student_name',label:'Student',type:'ref',refTable:'students',refValue:'full_name',refStore:'value'},
+      {key:'student_name',label:'Student',type:'ref',refTable:'students',refValue:'full_name',refExtra:['class'],refStore:'value',groupBy:'class'},
       {key:'points',label:'Points',type:'number'},
       {key:'reason',label:'Reason',type:'text'},{key:'badge',label:'Badge',type:'text'}
     ]},
@@ -246,7 +271,7 @@ const CRUD = {
     ]},
     parents: { table:'parent_child', title:'Parent–Child link', cols:[
       {key:'parent_id',label:'Parent (profile id)',type:'text'},
-      {key:'student_id',label:'Student',type:'ref',refTable:'students',refValue:'full_name',refStore:'id'},
+      {key:'student_id',label:'Student',type:'ref',refTable:'students',refValue:'full_name',refExtra:['class'],refStore:'id',groupBy:'class'},
       {key:'relationship',label:'Relationship',type:'select',options:['parent','guardian','sponsor']}
     ]}
   },
@@ -343,9 +368,20 @@ const CRUD = {
     if (!this.sb) return [];
     try {
       if (c.type === 'ref') {
-        const cols = ['id', c.refValue].concat(c.refExtra || []).join(',');
-        const { data } = await this.sb.from(c.refTable).select(cols).order(c.refValue, { ascending: true }).limit(1000);
-        return (data || []).map(r => ({ value: c.refStore === 'id' ? r.id : r[c.refValue], label: r[c.refValue] + (c.refExtra && r[c.refExtra[0]] ? ' (' + r[c.refExtra[0]] + ')' : ''), row: r }));
+        const extra = c.refExtra || [];
+        const grpCols = c.groupBy ? [c.groupBy] : [];
+        const allExtra = Array.from(new Set(extra.concat(grpCols)));
+        const cols = ['id', c.refValue].concat(allExtra).join(',');
+        let q = this.sb.from(c.refTable).select(cols).order(c.refValue, { ascending: true }).limit(2000);
+        // refFilter: only show matching rows (e.g. only teaching staff as class teachers)
+        if (c.refFilter) Object.keys(c.refFilter).forEach(k => { try { q = q.eq(k, c.refFilter[k]); } catch (e) {} });
+        const { data } = await q;
+        return (data || []).map(r => ({
+          value: c.refStore === 'id' ? r.id : r[c.refValue],
+          label: r[c.refValue] + (extra.length && r[extra[0]] ? ' (' + r[extra[0]] + ')' : ''),
+          group: c.groupBy ? (r[c.groupBy] || 'Unassigned') : null,
+          row: r
+        }));
       }
       if (c.type === 'lookup') {
         const { data } = await this.sb.from('lookups').select('value').eq('kind', c.lookupKind).order('position');
@@ -374,8 +410,17 @@ const CRUD = {
       } else if (c.type === 'ref' || c.type === 'lookup' || c.type === 'select') {
         const opts = (c.type === 'select') ? (c.options || []).map(o => ({ value: o, label: o })) : await this.loadOptions(c);
         const onchg = (c.type === 'ref' && c.autofill) ? ' onchange="CRUD.onRefChange(\'' + moduleId + '\',\'' + c.key + '\',this)"' : '';
-        field = '<select class="form-select" id="cf-' + CRUD.fid(c.key) + '"' + onchg + '><option value="">— select —</option>' +
-          opts.map(o => '<option value="' + esc(o.value) + '"' + (String(val) === String(o.value) ? ' selected' : '') + (o.row ? ' data-row=\'' + esc(JSON.stringify(o.row)) + '\'' : '') + '>' + esc(o.label) + '</option>').join('') + '</select>';
+        const optHtml = (o) => '<option value="' + esc(o.value) + '"' + (String(val) === String(o.value) ? ' selected' : '') + (o.row ? ' data-row=\'' + esc(JSON.stringify(o.row)) + '\'' : '') + '>' + esc(o.label) + '</option>';
+        let inner;
+        if (c.groupBy && opts.some(o => o.group)) {
+          // Group options by class (issue 11) for compact, easy navigation.
+          const groups = {};
+          opts.forEach(o => { const g = o.group || 'Unassigned'; (groups[g] = groups[g] || []).push(o); });
+          inner = Object.keys(groups).sort().map(g => '<optgroup label="' + esc(g) + '">' + groups[g].map(optHtml).join('') + '</optgroup>').join('');
+        } else {
+          inner = opts.map(optHtml).join('');
+        }
+        field = '<select class="form-select" id="cf-' + CRUD.fid(c.key) + '"' + onchg + '><option value="">— select —</option>' + inner + '</select>';
       } else if (c.type === 'checkbox') {
         field = '<label style="display:inline-flex;gap:8px;align-items:center"><input type="checkbox" id="cf-' + CRUD.fid(c.key) + '"' + (val ? ' checked' : '') + '> ' + esc(c.label) + '</label>';
       } else if (c.type === 'time') {
@@ -460,13 +505,230 @@ const CRUD = {
 
   exportCSV(moduleId) {
     const d = this.def(moduleId); if (!d || !this.sb) return;
-    this.sb.from(d.table).select('*').then(({ data }) => {
+    let q = this.sb.from(d.table).select('*');
+    if (d.generic) q = q.eq('module', d.module);
+    q.then(({ data }) => {
       if (!data || !data.length) { toast('Nothing to export.', 'warning'); return; }
       const keys = Object.keys(data[0]);
-      const csv = [keys.join(',')].concat(data.map(r => keys.map(k => '"' + String(r[k] == null ? '' : r[k]).replace(/"/g, '""') + '"').join(','))).join('\n');
+      const csv = [keys.join(',')].concat(data.map(r => keys.map(k => '"' + String(r[k] == null ? '' : (typeof r[k] === 'object' ? JSON.stringify(r[k]) : r[k])).replace(/"/g, '""') + '"').join(','))).join('\n');
       const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([csv], { type: 'text/csv' })); a.download = d.table + '.csv'; a.click();
     });
+  },
+
+  /* Issue 12: Export the visible/queried records as a printable PDF (uses the
+     browser's "Save as PDF" print engine — no paid library, no AI). */
+  exportPDF(moduleId) {
+    const d = this.def(moduleId); if (!d || !this.sb) return;
+    let q = this.sb.from(d.table).select('*');
+    if (d.generic) q = q.eq('module', d.module);
+    q.then(({ data }) => {
+      if (!data || !data.length) { toast('Nothing to export.', 'warning'); return; }
+      const cols = d.cols;
+      const sc = (window.SCHOOL || {});
+      const cellVal = (row, c) => c.key.indexOf('data.') === 0 ? ((row.data || {})[c.key.slice(5)]) : row[c.key];
+      const head = '<tr>' + cols.map(c => '<th>' + esc(c.label) + '</th>').join('') + '</tr>';
+      const rows = data.map(r => '<tr>' + cols.map(c => '<td>' + esc(String(cellVal(r, c) == null ? '' : cellVal(r, c))) + '</td>').join('') + '</tr>').join('');
+      const w = window.open('', '_blank');
+      w.document.write('<html><head><title>' + esc(d.title) + ' export</title><style>body{font-family:Arial,sans-serif;padding:18px;color:#111}h2{margin:0}small{color:#666}table{border-collapse:collapse;width:100%;margin-top:14px;font-size:12px}th,td{border:1px solid #ccc;padding:6px 8px;text-align:left}th{background:#f1f5f9}</style></head><body><h2>' + esc(sc.name || 'School') + ' — ' + esc(d.title) + ' records</h2><small>Generated ' + new Date().toLocaleString() + ' · ' + data.length + ' record(s)</small><table>' + head + rows + '</table><script>window.onload=()=>window.print()<\/script></body></html>');
+      w.document.close();
+    });
+  },
+
+  /* Issue 11: Bulk-import students (or any module) from a CSV file. The CSV is
+     parsed in-browser and ONLY the extracted records are stored — the file
+     itself is NEVER uploaded/saved (keeps Supabase storage free). */
+  importCSV(moduleId) {
+    const d = this.def(moduleId); if (!d) { toast('Import not available here.', 'warning'); return; }
+    if (!this.sb) { toast('Database not configured.', 'warning'); return; }
+    const inp = document.createElement('input'); inp.type = 'file'; inp.accept = '.csv,text/csv';
+    inp.onchange = () => {
+      const f = inp.files[0]; if (!f) return;
+      const reader = new FileReader();
+      reader.onload = async () => {
+        const rows = CRUD._parseCSV(String(reader.result));
+        if (!rows.length) { toast('CSV is empty or unreadable.', 'warning'); return; }
+        const header = rows[0].map(h => h.trim());
+        const valid = new Set(d.cols.filter(c => c.key.indexOf('data.') !== 0).map(c => c.key));
+        const dataCols = new Set(d.cols.filter(c => c.key.indexOf('data.') === 0).map(c => c.key.slice(5)));
+        const records = rows.slice(1).filter(r => r.some(x => x && x.trim())).map(r => {
+          const rec = {}; const dataObj = {};
+          header.forEach((h, i) => {
+            const v = (r[i] == null ? '' : r[i].trim());
+            if (v === '') return;
+            if (valid.has(h)) rec[h] = v;
+            else if (dataCols.has(h)) dataObj[h] = v;
+          });
+          if (d.generic) { rec.module = d.module; rec.data = dataObj; if (!rec.title && dataObj.title) rec.title = dataObj.title; }
+          return rec;
+        }).filter(r => Object.keys(r).length);
+        if (!records.length) { toast('No valid rows found. Check column headers match field keys.', 'warning', 7000); return; }
+        // chunked insert to stay within free-tier request sizes
+        let ok = 0, fail = 0;
+        for (let i = 0; i < records.length; i += 200) {
+          const { error } = await this.sb.from(d.table).insert(records.slice(i, i + 200));
+          if (error) { fail += Math.min(200, records.length - i); } else { ok += Math.min(200, records.length - i); }
+        }
+        if (window.App && App.logActivity) App.logActivity('import', d.table, ok + ' rows');
+        toast('✅ Imported ' + ok + ' record(s).' + (fail ? ' ' + fail + ' failed.' : '') + ' (CSV file not stored)', fail ? 'warning' : 'success', 6000);
+        this.renderList(moduleId);
+      };
+      reader.readAsText(f);
+    };
+    inp.click();
+  },
+
+  _parseCSV(text) {
+    // RFC-4180-ish CSV parser supporting quoted fields, commas & newlines.
+    const rows = []; let row = [], field = '', inQ = false;
+    text = text.replace(/\r\n/g, '\n').replace(/\r/g, '\n');
+    for (let i = 0; i < text.length; i++) {
+      const ch = text[i];
+      if (inQ) {
+        if (ch === '"') { if (text[i + 1] === '"') { field += '"'; i++; } else inQ = false; }
+        else field += ch;
+      } else {
+        if (ch === '"') inQ = true;
+        else if (ch === ',') { row.push(field); field = ''; }
+        else if (ch === '\n') { row.push(field); rows.push(row); row = []; field = ''; }
+        else field += ch;
+      }
+    }
+    if (field !== '' || row.length) { row.push(field); rows.push(row); }
+    return rows;
+  },
+
+  /* Issue 9: Digital library — when a teacher sets reading questions on a book,
+     the student's auto-marked score can be pushed into the results table so it
+     counts toward the final grade. */
+  async pushReadingScore(studentName, subject, cls, score, label) {
+    if (!this.sb) return;
+    try {
+      await this.sb.from('reading_scores').insert({ student_name: studentName, subject, class: cls, score, source: label || 'digital_library' });
+    } catch (e) {}
+  },
+
+  /* Issue 10: Auto-promotion. Computes promote/repeat/graduate for every active
+     student from their results vs a pass benchmark, then writes draft promotion
+     rows the admin can review & alter before applying. */
+  async autoPromote(opts) {
+    if (!this.sb) { toast('Database not configured.', 'warning'); return; }
+    opts = opts || {};
+    const benchmark = Number(opts.benchmark != null ? opts.benchmark : 40);
+    const session = opts.session || '';
+    const term = opts.term || '';
+    const graduatingClass = (opts.graduatingClass || '').trim();
+    const { data: studs } = await this.sb.from('students').select('id,full_name,class,status').eq('status', 'active').limit(5000);
+    if (!studs || !studs.length) { toast('No active students found.', 'warning'); return; }
+    let rq = this.sb.from('results').select('student_name,class,subject,ca1,ca2,ca3,exam');
+    if (session) rq = rq.eq('session', session);
+    if (term) rq = rq.eq('term', term);
+    const { data: results } = await rq.limit(50000);
+    const byStudent = {};
+    (results || []).forEach(r => {
+      const t = (Number(r.ca1) || 0) + (Number(r.ca2) || 0) + (Number(r.ca3) || 0) + (Number(r.exam) || 0);
+      (byStudent[r.student_name] = byStudent[r.student_name] || []).push(t);
+    });
+    // class progression map (override via opts.nextClass)
+    const nextClassMap = opts.nextClass || CRUD._defaultNextClass();
+    const drafts = [];
+    studs.forEach(s => {
+      const scores = byStudent[s.full_name] || [];
+      const avg = scores.length ? scores.reduce((a, b) => a + b, 0) / scores.length : null;
+      let action, to_class = '';
+      if (graduatingClass && s.class === graduatingClass) { action = 'graduate'; }
+      else if (avg == null) { action = 'pending'; }
+      else if (avg >= benchmark) { action = 'promote'; to_class = nextClassMap[s.class] || ''; }
+      else { action = 'repeat'; to_class = s.class; }
+      drafts.push({ student_name: s.full_name, from_class: s.class, to_class, action, average: avg == null ? null : Math.round(avg * 10) / 10, session, term, status: 'draft' });
+    });
+    // store as draft promotions (admin can edit before applying)
+    let ok = 0;
+    for (let i = 0; i < drafts.length; i += 200) {
+      const { error } = await this.sb.from('promotions').insert(drafts.slice(i, i + 200).map(d => ({ student_name: d.student_name, from_class: d.from_class, to_class: d.to_class, action: d.action, session: d.session, term: d.term, status: d.status, average: d.average })));
+      if (!error) ok += Math.min(200, drafts.length - i);
+    }
+    if (window.App && App.logActivity) App.logActivity('auto-promote', 'promotions', ok + ' drafts @ ' + benchmark + '%');
+    toast('✅ Generated ' + ok + ' promotion draft(s) at ' + benchmark + '% benchmark. Review & edit, then Apply.', 'success', 8000);
+    this.renderList('promotion');
+    return drafts;
+  },
+
+  _defaultNextClass() {
+    // Sensible Nigerian-style progression; admin can override anytime.
+    return {
+      'Nursery 1': 'Nursery 2', 'Nursery 2': 'Primary 1',
+      'Primary 1': 'Primary 2', 'Primary 2': 'Primary 3', 'Primary 3': 'Primary 4',
+      'Primary 4': 'Primary 5', 'Primary 5': 'Primary 6', 'Primary 6': 'JSS1',
+      'JSS1': 'JSS2', 'JSS2': 'JSS3', 'JSS3': 'SSS1',
+      'SSS1': 'SSS2', 'SSS2': 'SSS3'
+    };
+  },
+
+  /* Apply approved/draft promotions: move each student to their to_class. */
+  async applyPromotions() {
+    if (!this.sb) { toast('Database not configured.', 'warning'); return; }
+    if (!confirm('Apply all promotions? This updates each student\'s class (graduates become "graduated").')) return;
+    const { data: proms } = await this.sb.from('promotions').select('*').in('status', ['draft', 'approved']).limit(5000);
+    if (!proms || !proms.length) { toast('No promotions to apply.', 'warning'); return; }
+    let done = 0;
+    for (const p of proms) {
+      if (p.action === 'pending') continue;
+      const upd = p.action === 'graduate' ? { status: 'graduated' } : (p.action === 'promote' ? { class: p.to_class } : {});
+      if (Object.keys(upd).length) { await this.sb.from('students').update(upd).eq('full_name', p.student_name); }
+      await this.sb.from('promotions').update({ status: 'applied' }).eq('id', p.id);
+      done++;
+    }
+    if (window.App && App.logActivity) App.logActivity('apply-promotions', 'students', done + ' applied');
+    toast('✅ Applied ' + done + ' promotion(s).', 'success'); this.renderList('promotion');
+  },
+
+  /* Issue 6: Build today's attendance from QR self check-ins so teachers don't
+     hand-enter each student. Anyone scanned = present; the rest of their class
+     are written as absent (admin can edit). */
+  async importAttendanceFromCheckin() {
+    if (!this.sb) { toast('Database not configured.', 'warning'); return; }
+    const today = new Date().toISOString().slice(0, 10);
+    const { data: checkins } = await this.sb.from('attendance_checkins').select('student_name,student_id_ref,class,checkin_at').gte('checkin_at', today + 'T00:00:00').limit(5000);
+    if (!checkins || !checkins.length) { toast('No QR check-ins recorded today yet.', 'warning', 6000); return; }
+    const present = {}; checkins.forEach(c => { const n = c.student_name || c.student_id_ref; if (n) present[n] = c.class || ''; });
+    // avoid duplicating existing attendance rows for today
+    const { data: existing } = await this.sb.from('attendance').select('student_name').eq('date', today);
+    const have = new Set((existing || []).map(a => a.student_name));
+    const rows = Object.keys(present).filter(n => !have.has(n)).map(n => ({ student_name: n, class: present[n], date: today, status: 'present', time_in: new Date().toTimeString().slice(0, 5) }));
+    if (!rows.length) { toast('All scanned students are already in today\'s attendance.', 'info'); return; }
+    const { error } = await this.sb.from('attendance').insert(rows);
+    if (error) { toast(error.message, 'danger'); return; }
+    if (window.App && App.logActivity) App.logActivity('attendance-from-checkin', 'attendance', rows.length + ' present');
+    toast('✅ Marked ' + rows.length + ' student(s) PRESENT from QR check-ins.', 'success', 6000);
+    this.renderList('attendance');
   }
 };
+
+/* ---- Auto-promotion modal UI (issue 10) ---- */
+const PromoUI = {
+  async open() {
+    if (!window.CRUD || !CRUD.sb) { toast('Database not configured.', 'warning'); return; }
+    let sessions = [], terms = [];
+    try { const { data } = await CRUD.sb.from('lookups').select('value,kind').in('kind', ['session', 'term']); (data || []).forEach(r => { if (r.kind === 'session') sessions.push(r.value); else terms.push(r.value); }); } catch (e) {}
+    const opt = (arr) => ['<option value="">— any —</option>'].concat(arr.map(v => '<option>' + esc(v) + '</option>')).join('');
+    openModal('Auto-promote students by exam result',
+      '<div class="form-group"><label>Pass benchmark (% of total)</label><input class="form-input" id="pp-bm" type="number" value="40" min="0" max="100"></div>' +
+      '<div class="form-group"><label>Session</label><select class="form-select" id="pp-sess">' + opt(sessions) + '</select></div>' +
+      '<div class="form-group"><label>Term</label><select class="form-select" id="pp-term">' + opt(terms) + '</select></div>' +
+      '<div class="form-group"><label>Graduating class (students here → graduate)</label><input class="form-input" id="pp-grad" placeholder="e.g. SSS3"></div>' +
+      '<p style="color:var(--gray-500);font-size:.85rem">This creates editable DRAFTS only. Review them, then click “Apply promotions”.</p>',
+      '<button class="btn btn-outline" onclick="closeModal()">Cancel</button>' +
+      '<button class="btn btn-primary" onclick="PromoUI.run()">Generate drafts</button>');
+  },
+  run() {
+    const benchmark = Number(document.getElementById('pp-bm').value || 40);
+    const session = document.getElementById('pp-sess').value;
+    const term = document.getElementById('pp-term').value;
+    const graduatingClass = document.getElementById('pp-grad').value;
+    closeModal();
+    CRUD.autoPromote({ benchmark, session, term, graduatingClass });
+  }
+};
+if (typeof window !== 'undefined') window.PromoUI = PromoUI;
 if (typeof window !== 'undefined') window.CRUD = CRUD;
 if (typeof console !== 'undefined') console.log('%c[School Connect] CRUD engine loaded — real add/edit/delete for every module.', 'color:#0d9488;font-weight:bold');

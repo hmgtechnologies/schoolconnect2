@@ -376,9 +376,15 @@ ${T.modal()}
         <button class="btn btn-primary" onclick="CRUD.openForm('${T.esc(moduleId)}')" data-staff-only>+ Add new</button>
         <button class="btn btn-outline" onclick="CRUD.renderList('${T.esc(moduleId)}')">↻ Refresh</button>
         <button class="btn btn-outline" onclick="CRUD.exportCSV('${T.esc(moduleId)}')" data-staff-only>⬇ Export CSV</button>
+        <button class="btn btn-outline" onclick="CRUD.exportPDF('${T.esc(moduleId)}')" data-staff-only>📄 Export PDF</button>
+        <button class="btn btn-outline" onclick="CRUD.importCSV('${T.esc(moduleId)}')" data-admin-only>⬆ Import CSV</button>
+        ${moduleId === 'students' ? '<a class="btn btn-outline" href="students_import_template.csv" download data-admin-only>📋 CSV template</a>' : ''}
         ${moduleId === 'birthdays' ? '<button class="btn btn-outline" onclick="CRUD.importBirthdays()" data-staff-only>🎂 Import student birthdays</button>' : ''}
+        ${moduleId === 'attendance' ? '<button class="btn btn-outline" onclick="CRUD.importAttendanceFromCheckin && CRUD.importAttendanceFromCheckin()" data-staff-only>📲 Pull from QR Check-in</button>' : ''}
+        ${moduleId === 'promotion' ? '<button class="btn btn-primary" onclick="PromoUI && PromoUI.open()" data-admin-only>⚙ Auto-promote (by exam)</button> <button class="btn btn-outline" onclick="CRUD.applyPromotions()" data-admin-only>✅ Apply promotions</button>' : ''}
         ${moduleId === 'sow' ? '<span style="align-self:center;color:var(--gray-500);font-size:.85rem">Tip: tick “Taught this week (confirm)” as you cover each topic so admin can track coverage.</span>' : ''}
       </div>
+      ${moduleId === 'promotion' ? `<div class="card" style="margin-bottom:16px;background:#f0fdfa;border-color:#99f6e4"><p style="margin:0;color:#0f766e"><strong>Automated promotion:</strong> Click <em>Auto-promote (by exam)</em> to generate draft promote/repeat/graduate decisions from each student's term average vs a benchmark you set. Review & edit any row, then <em>Apply promotions</em> to move students up. Nothing changes until you Apply.</p></div>` : ''}
       <div class="table-wrap"><table id="${T.esc(moduleId)}-table"><thead><tr><th>Loading…</th></tr></thead><tbody><tr><td><span class="pulse">Loading…</span></td></tr></tbody></table></div>
       <script>document.addEventListener('DOMContentLoaded',function(){ if(window.CRUD) CRUD.renderList('${T.esc(moduleId)}'); });</script>`,
       { requireRole: opts.requireRole || 'staff' });

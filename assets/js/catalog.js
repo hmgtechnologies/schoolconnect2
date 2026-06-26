@@ -213,17 +213,17 @@ const LAYOUTS = [
 const PRESETS = {
   'nurseryprimary': {
     name:'Nursery & Primary', emoji:'🏠',
-    modules: ['students','staff','classes','attendance','results','certificates','flyer','cbt','report-cards','analytics','admin-data','approvals','timetable-generator','checkin','diary','surveys','menu','settings','fees','messages','parents','gallery','birthdays','idcards','directory'],
+    modules: ['students','staff','classes','subjects','attendance','results','certificates','flyer','cbt','report-cards','analytics','admin-data','approvals','timetable-generator','checkin','diary','surveys','menu','settings','fees','messages','parents','gallery','birthdays','idcards','directory'],
     levels:['Pre-Nursery','Nursery 1','Nursery 2','Primary 1','Primary 2','Primary 3','Primary 4','Primary 5','Primary 6']
   },
   'secondary': {
     name:'Secondary / High School', emoji:'🏫',
-    modules: ['students','staff','classes','attendance','results','certificates','flyer','report-cards','analytics','admin-data','approvals','timetable-generator','checkin','diary','surveys','menu','settings','fees','timetable','cbt','sow','messages','announcements','events','gallery','library','assignments','parents','idcards','directory','departments','broadcast','complaints','leave','visitors'],
+    modules: ['students','staff','classes','subjects','attendance','results','certificates','flyer','report-cards','analytics','admin-data','approvals','timetable-generator','checkin','diary','surveys','menu','settings','fees','timetable','cbt','sow','messages','announcements','events','gallery','library','digital_library','assignments','parents','idcards','directory','departments','broadcast','complaints','leave','visitors'],
     levels:['JSS 1','JSS 2','JSS 3','SSS 1','SSS 2','SSS 3']
   },
   'fullschool': {
     name:'Group of Schools (K–12)', emoji:'🏢',
-    modules: ['students','staff','classes','attendance','results','flyer','report-cards','analytics','admin-data','approvals','timetable-generator','checkin','diary','surveys','menu','settings','fees','timetable','cbt','sow','messages','announcements','events','gallery','library','assignments','parents','idcards','directory','departments','broadcast','complaints','leave','visitors','hostel','transport','alumni','certificates','admissions','promotion','finance','inventory','hr','voting','health','conduct','eresources','birthdays','lms','gamification','cafeteria','financial_aid','front_desk','career_counseling','document_builder','fleet_tracking','facility_booking','compliance'],
+    modules: ['students','staff','classes','subjects','attendance','results','flyer','report-cards','analytics','admin-data','approvals','timetable-generator','checkin','diary','surveys','menu','settings','fees','timetable','cbt','sow','messages','announcements','events','gallery','library','digital_library','assignments','parents','idcards','directory','departments','broadcast','complaints','leave','visitors','hostel','transport','alumni','certificates','admissions','promotion','finance','inventory','hr','voting','health','conduct','eresources','birthdays','lms','gamification','cafeteria','financial_aid','front_desk','career_counseling','document_builder','fleet_tracking','facility_booking','compliance'],
     levels:['Pre-Nursery','Nursery 1','Nursery 2','Primary 1','Primary 2','Primary 3','Primary 4','Primary 5','Primary 6','JSS 1','JSS 2','JSS 3','SSS 1','SSS 2','SSS 3']
   },
   'tutorial': {
@@ -233,12 +233,12 @@ const PRESETS = {
   },
   'tertiary': {
     name:'College / Tertiary', emoji:'🎓',
-    modules: ['students','staff','classes','attendance','results','idcards','certificates','flyer','report-cards','analytics','admin-data','approvals','timetable-generator','checkin','diary','surveys','menu','settings','fees','cbt','library','eresources','announcements','events','gallery','directory','broadcast','hostel','voting'],
+    modules: ['students','staff','classes','subjects','attendance','results','idcards','certificates','flyer','report-cards','analytics','admin-data','approvals','timetable-generator','checkin','diary','surveys','menu','settings','fees','cbt','library','digital_library','eresources','announcements','events','gallery','directory','broadcast','hostel','voting'],
     levels:['ND 1','ND 2','HND 1','HND 2','BSc 1','BSc 2','BSc 3','BSc 4']
   },
   'enterprise': {
     name:'Enterprise (every module)', emoji:'🌟',
-    modules: ['students','staff','classes','attendance','results','flyer','report-cards','analytics','admin-data','approvals','timetable-generator','checkin','diary','surveys','menu','settings','fees','timetable','cbt','sow','messages','announcements','events','gallery','library','assignments','parents','idcards','directory','departments','broadcast','complaints','leave','visitors','hostel','transport','alumni','certificates','admissions','promotion','finance','inventory','hr','voting','health','conduct','eresources','birthdays','lms','gamification','cafeteria','financial_aid','front_desk','career_counseling','document_builder','fleet_tracking','facility_booking','compliance'],
+    modules: ['students','staff','classes','subjects','attendance','results','flyer','report-cards','analytics','admin-data','approvals','timetable-generator','checkin','diary','surveys','menu','settings','fees','timetable','cbt','sow','messages','announcements','events','gallery','library','digital_library','assignments','parents','idcards','directory','departments','broadcast','complaints','leave','visitors','hostel','transport','alumni','certificates','admissions','promotion','finance','inventory','hr','voting','health','conduct','eresources','birthdays','lms','gamification','cafeteria','financial_aid','front_desk','career_counseling','document_builder','fleet_tracking','facility_booking','compliance'],
     levels:['Pre-Nursery','Nursery 1','Nursery 2','Primary 1','Primary 2','Primary 3','Primary 4','Primary 5','Primary 6','JSS 1','JSS 2','JSS 3','SSS 1','SSS 2','SSS 3']
   },
   'custom': { name:'Custom', emoji:'🛠️', modules: [], levels: [] }
@@ -248,10 +248,11 @@ const PRESETS = {
 const MODULES = [
   // Core academic (13)
   { id:'students',     name:'Students & Profiles',     group:'Core',  desc:'Central student information system with guardian info and Drive-linked photos.', free:true },
-  { id:'staff',        name:'Staff / Teachers',        group:'Core',  desc:'Staff directory, departments, subjects, leave balance, part-time flag.', free:true },
-  { id:'classes',      name:'Classes & Subjects',      group:'Core',  desc:'Manage class arms and subjects offered per department/level.', free:true },
-  { id:'attendance',   name:'Attendance',              group:'Core',  desc:'Daily/class attendance with QR ID-card scanning and parent alerts.', free:true, new:true },
-  { id:'results',      name:'Results / Report Cards',  group:'Core',  desc:'CA + exam scores, printable branded report cards, CBT integration.', free:true },
+  { id:'staff',        name:'Staff / Teachers',        group:'Core',  desc:'Full staff records: teaching/non-teaching, subject taught, qualification, religion, marital status, photo (Drive link) and auto staff number. Approved teacher sign-ups are auto-added here.', free:true },
+  { id:'classes',      name:'Classes',                 group:'Core',  desc:'Create each class/arm and assign a class teacher by choosing from a staff dropdown — no typing. Set level and capacity.', free:true },
+  { id:'subjects',     name:'Subjects',                group:'Core',  desc:'Register every subject once, give it a code/department/level, and map it to a teacher (chosen from staff). Used everywhere subjects are picked.', free:true, new:true },
+  { id:'attendance',   name:'Attendance',              group:'Core',  desc:'Daily/class attendance. Pull a whole class PRESENT automatically from QR check-ins — no one-by-one typing. Parent alerts.', free:true, new:true },
+  { id:'results',      name:'Results / Scores',        group:'Core',  desc:'Enter CA + exam scores per student/subject/term/session (all chosen from dropdowns). Grades auto-suggested. Feeds report cards & promotion.', free:true },
   { id:'timetable',    name:'Timetable',               group:'Core',  desc:'Class & exam timetables with auto-conflict detection.', free:true, new:true },
   { id:'sow',          name:'Scheme of Work',          group:'Core',  desc:'Termly planning + weekly progress tracking with proprietor dashboard.', free:true, new:true },
   { id:'cbt',          name:'CBT / Online Exams',      group:'Core',  desc:'Full embedded CBT engine: 17 question types, CSV upload, timer, randomisation, negative marking, anti-cheat, certificates, link/code access — results auto-flow into report cards.', free:true, popular:true },
@@ -267,9 +268,10 @@ const MODULES = [
   { id:'settings',     name:'Settings (2FA · Language · A11y)', group:'Enterprise', desc:'Free email-OTP 2FA, multi-language UI (incl. Hausa/Yoruba/Igbo), and accessibility (font scaling, high contrast).', free:true, enterprise:true, new:true },
   { id:'assignments',  name:'Assignments / Homework',  group:'Core',  desc:'Post & track assignments with submission and grading.', free:true, popular:true },
   { id:'library',      name:'Library',                 group:'Core',  desc:'Book catalogue, lending records, barcode scanning, due-date alerts.', free:true, new:true },
+  { id:'digital_library', name:'Digital Library',      group:'Core',  desc:'Teachers assign online books/links + optional comprehension questions; auto-scored marks count toward grades.', free:true, new:true },
   { id:'conduct',      name:'Conduct / Behaviour',     group:'Core',  desc:'Merit/demerit, incidents, pattern tracking.', free:true, new:true },
   { id:'health',       name:'Health / Clinic',         group:'Core',  desc:'Sick-bay visits, medical history, allergy alerts.', free:true, new:true },
-  { id:'promotion',    name:'Promotion / Graduation',  group:'Core',  desc:'Promote classes, graduate (→Alumni), audit trail.', free:true, new:true },
+  { id:'promotion',    name:'Promotion / Graduation',  group:'Core',  desc:'Automated promotion: from each student\'s term average vs a benchmark you set, the system drafts promote/repeat/graduate decisions. Admin reviews/edits, then applies. Graduates move to Alumni.', free:true, new:true },
   // Financial & admin (5)
   { id:'fees',         name:'Fees & Payments',         group:'Finance',desc:'Fee structures, balances, print-ready receipts, payment tracking.', free:true },
   { id:'finance',      name:'School Finance',          group:'Finance',desc:'Income/expense ledger with charts and KPI analytics.', free:true, new:true },
@@ -309,7 +311,7 @@ const MODULES = [
 ,
   // Advanced Enterprise 2024 Additions (10 more)
   { id:'lms',            name:'Integrated LMS',          group:'Core',  desc:'Unified learning platform for course tracking, video lessons, and online assignment submissions.', free:true, enterprise:true },
-  { id:'gamification',   name:'PBIS & Gamification',     group:'Core',  desc:'Reward points, behavioral badges, and positive reinforcement tracking.', free:true, enterprise:true },
+  { id:'gamification',   name:'Rewards & Badges (PBIS)', group:'Core',  desc:'Give students points for good behaviour/effort and award badges. A simple, transparent positive-reinforcement tracker — every point is logged and visible.', free:true, enterprise:true },
   { id:'cafeteria',      name:'Cafeteria & Meals',       group:'Finance',desc:'Student meal plans, dietary restrictions tracking, and pre-paid wallets.', free:true, enterprise:true },
   { id:'financial_aid',  name:'Scholarships & Aid',      group:'Finance',desc:'Manage fee waivers, sponsor tracking, and scholarship renewals.', free:true, enterprise:true },
   { id:'front_desk',     name:'Front Desk / Dispatch',   group:'Comm',  desc:'Track postal dispatch, calls, and walk-in admission inquiries.', free:true, enterprise:true },

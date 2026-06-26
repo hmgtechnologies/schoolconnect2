@@ -297,22 +297,41 @@ const Super = {
       const photoImg = photo
         ? `<img src="${Super.esc(photo)}" referrerpolicy="no-referrer" style="width:70px;height:70px;border-radius:10px;object-fit:cover;background:#f1f5f9" alt="photo" onerror="this.onerror=null;this.style.display='none';this.nextElementSibling.style.display='flex'"><div style="display:none;width:70px;height:70px;border-radius:10px;background:var(--primary,#4f46e5);color:#fff;align-items:center;justify-content:center;font-weight:900;font-size:1.6rem">${initial}</div>`
         : `<div style="width:70px;height:70px;border-radius:10px;background:var(--primary,#4f46e5);color:#fff;display:flex;align-items:center;justify-content:center;font-weight:900;font-size:1.6rem">${initial}</div>`;
-      const qr = this.qrUrl(JSON.stringify({ id: person.id || person.admission_no || '', name: person.full_name || person.name || '', type: person.type || 'student' }));
-      return `<div class="sc-idcard" style="width:340px;border-radius:14px;overflow:hidden;border:1px solid #e2e8f0;font-family:sans-serif">
-        <div style="background:var(--primary,#4f46e5);color:#fff;padding:12px 14px;display:flex;align-items:center;gap:10px">
-          <img src="assets/img/logo.${(s.logoExt || 'svg')}" style="width:34px;height:34px;border-radius:8px;background:#fff;object-fit:contain" alt="">
-          <div><strong style="font-size:.95rem">${Super.esc(s.name || 'School')}</strong><div style="font-size:.7rem;opacity:.9">${Super.esc(s.motto || '')}</div></div>
+      const isStaff = (person.type === 'staff');
+      const idNo = person.admission_no || person.staff_no || person.id || '';
+      const qr = this.qrUrl(JSON.stringify({ id: idNo, name: person.full_name || person.name || '', type: person.type || 'student' }));
+      const tag = isStaff ? 'STAFF IDENTITY CARD' : 'STUDENT IDENTITY CARD';
+      // build the detail rows (professional, complete — issue 14)
+      const rows = [];
+      const add = (k, v) => { if (v) rows.push('<tr><td style="color:#64748b;padding:1px 8px 1px 0;white-space:nowrap">' + Super.esc(k) + '</td><td style="font-weight:600">' + Super.esc(v) + '</td></tr>'); };
+      add('ID No', idNo);
+      if (isStaff) { add('Designation', person.role); add('Department', person.department); add('Type', person.staff_type); }
+      else { add('Class', person.class); add('Arm', person.arm); }
+      add('Gender', person.gender); add('Phone', person.phone);
+      add('Blood', person.blood_group);
+      const session = (s.session || (new Date().getFullYear() + '/' + (new Date().getFullYear() + 1)));
+      return `<div class="sc-idcard" style="width:340px;border-radius:16px;overflow:hidden;border:1px solid #e2e8f0;font-family:'Segoe UI',Arial,sans-serif;box-shadow:0 8px 24px rgba(0,0,0,.12);background:#fff">
+        <div style="background:linear-gradient(135deg,var(--primary,#4f46e5),var(--accent,#0ea5e9));color:#fff;padding:12px 14px;display:flex;align-items:center;gap:10px">
+          <img src="assets/img/logo.${(s.logoExt || 'svg')}" style="width:38px;height:38px;border-radius:9px;background:#fff;padding:3px;object-fit:contain" alt="" onerror="this.style.display='none'">
+          <div style="flex:1;min-width:0"><strong style="font-size:.95rem;display:block;line-height:1.15">${Super.esc(s.name || 'School')}</strong><div style="font-size:.66rem;opacity:.92">${Super.esc(s.motto || '')}</div></div>
         </div>
-        <div style="display:flex;gap:12px;padding:14px;align-items:center">
-          ${photoImg}
-          <div style="flex:1;font-size:.85rem">
-            <div style="font-weight:700">${Super.esc(person.full_name || person.name || '')}</div>
-            <div style="color:#64748b">${Super.esc(person.class || person.role || '')}</div>
-            <div style="color:#64748b">ID: ${Super.esc(person.admission_no || person.id || '')}</div>
+        <div style="background:${isStaff ? '#0f766e' : '#1d4ed8'};color:#fff;font-size:.64rem;letter-spacing:1.5px;text-align:center;padding:3px 0;font-weight:700">${tag}</div>
+        <div style="display:flex;gap:12px;padding:14px 14px 6px;align-items:flex-start">
+          <div style="flex-shrink:0">${photoImg}</div>
+          <div style="flex:1;min-width:0">
+            <div style="font-weight:800;font-size:1rem;line-height:1.2;color:#0f172a">${Super.esc(person.full_name || person.name || '')}</div>
+            <table style="font-size:.74rem;margin-top:5px;border-collapse:collapse">${rows.join('')}</table>
           </div>
-          <img src="${qr}" style="width:60px;height:60px" alt="QR">
         </div>
-        <div style="background:#f8fafc;padding:8px 14px;font-size:.68rem;color:#94a3b8;text-align:center">${Super.esc(s.phone || '')} · Powered by HMG Concepts</div>
+        <div style="display:flex;justify-content:space-between;align-items:flex-end;padding:0 14px 10px">
+          <div style="font-size:.62rem;color:#64748b">
+            <div>Session: <strong>${Super.esc(session)}</strong></div>
+            <div style="margin-top:10px;border-top:1px solid #cbd5e1;width:90px;text-align:center;font-size:.58rem;padding-top:1px">Signature</div>
+          </div>
+          <img src="${qr}" style="width:64px;height:64px" alt="QR">
+        </div>
+        <div style="background:#f1f5f9;padding:7px 14px;font-size:.64rem;color:#64748b;text-align:center">${Super.esc(s.address || s.phone || '')}${s.phone && s.address ? ' · ' + Super.esc(s.phone) : ''}</div>
+        <div style="background:#0f172a;color:#94a3b8;font-size:.56rem;text-align:center;padding:3px 0">If found, please return to the school office · Powered by HMG Concepts</div>
       </div>`;
     },
     print(person) {
@@ -355,26 +374,68 @@ const Super = {
      6) FLYER / MARKETING GENERATOR (printable promo poster — lead gen)
      ================================================================== */
   flyer: {
-    html() {
+    // Fully customisable (issue 15): colours, fonts, layouts, headline, bullets,
+    // CTA. Pass an options object; sensible defaults pull from the school config.
+    defaults() {
       const s = Super.school || {};
-      return `<div class="sc-flyer" style="width:600px;max-width:96vw;background:linear-gradient(135deg,var(--primary,#4f46e5),var(--accent,#7c3aed));color:#fff;border-radius:18px;padding:40px;text-align:center;font-family:sans-serif">
-        <img src="assets/img/logo.${(s.logoExt || 'svg')}" style="width:80px;height:80px;border-radius:16px;background:#fff;object-fit:contain" alt="">
-        <h1 style="font-size:2rem;margin:14px 0 4px">${Super.esc(s.name || 'Our School')}</h1>
-        <p style="opacity:.95">${Super.esc(s.motto || 'Excellence in Education')}</p>
-        <div style="background:rgba(255,255,255,.15);border-radius:14px;padding:20px;margin:24px 0;text-align:left">
-          <p style="margin:6px 0">✅ Online results & report cards</p>
-          <p style="margin:6px 0">✅ CBT / online exams from any device</p>
-          <p style="margin:6px 0">✅ Fees, attendance & parent updates</p>
-          <p style="margin:6px 0">✅ Installable app + instant notifications</p>
-        </div>
-        <p style="font-weight:700">📞 ${Super.esc(s.phone || '')}  ·  ✉️ ${Super.esc(s.email || '')}</p>
-        <p style="font-size:.8rem;opacity:.85">${Super.esc(s.address || '')}</p>
-        <p style="margin-top:18px;font-size:.7rem;opacity:.8">Powered by HMG Concepts</p>
-      </div>`;
+      return {
+        title: s.name || 'Our School',
+        tagline: s.motto || 'Excellence in Education',
+        headline: 'ADMISSION IN PROGRESS',
+        bullets: ['Online results & report cards', 'CBT / online exams from any device', 'Fees, attendance & parent updates', 'Installable app + instant notifications'],
+        cta: 'Apply today — limited spaces!',
+        pc: '#4f46e5', ac: '#7c3aed', text: '#ffffff',
+        font: "system-ui,'Segoe UI',Arial,sans-serif",
+        layout: 'gradient' // gradient | banner | minimal | sidebar
+      };
     },
-    print() {
+    html(o) {
+      o = Object.assign(this.defaults(), o || {});
+      const s = Super.school || {};
+      const logo = `assets/img/logo.${(s.logoExt || 'svg')}`;
+      const bullets = (o.bullets || []).map(b => `<p style="margin:6px 0">✅ ${Super.esc(b)}</p>`).join('');
+      const contact = `<p style="font-weight:700;margin:6px 0">📞 ${Super.esc(s.phone || '')}  ·  ✉️ ${Super.esc(s.email || '')}</p><p style="font-size:.8rem;opacity:.85;margin:0">${Super.esc(s.address || '')}</p>`;
+      const credit = '<p style="margin-top:16px;font-size:.7rem;opacity:.8">Powered by HMG Concepts</p>';
+      const base = `width:600px;max-width:96vw;border-radius:18px;padding:38px;font-family:${o.font};color:${o.text}`;
+      if (o.layout === 'minimal') {
+        return `<div class="sc-flyer" style="${base};background:#fff;color:#0f172a;border:3px solid ${o.pc};text-align:center">
+          <img src="${logo}" style="width:80px;height:80px;border-radius:16px;object-fit:contain" onerror="this.style.display='none'">
+          <h1 style="font-size:2rem;margin:14px 0 2px;color:${o.pc}">${Super.esc(o.title)}</h1>
+          <p style="color:#64748b">${Super.esc(o.tagline)}</p>
+          <h2 style="letter-spacing:2px;color:${o.ac};margin:18px 0">${Super.esc(o.headline)}</h2>
+          <div style="text-align:left;max-width:420px;margin:0 auto;color:#0f172a">${bullets}</div>
+          <p style="font-weight:800;margin:20px 0;color:${o.pc}">${Super.esc(o.cta)}</p>${contact}${credit}</div>`;
+      }
+      if (o.layout === 'banner') {
+        return `<div class="sc-flyer" style="${base};background:#fff;color:#0f172a;overflow:hidden;padding:0">
+          <div style="background:linear-gradient(135deg,${o.pc},${o.ac});color:${o.text};padding:28px;text-align:center">
+            <img src="${logo}" style="width:70px;height:70px;border-radius:14px;background:#fff;object-fit:contain" onerror="this.style.display='none'">
+            <h1 style="font-size:1.9rem;margin:10px 0 2px">${Super.esc(o.title)}</h1>
+            <p style="opacity:.95;margin:0">${Super.esc(o.tagline)}</p></div>
+          <div style="padding:28px;text-align:center"><h2 style="letter-spacing:2px;color:${o.ac};margin:0 0 14px">${Super.esc(o.headline)}</h2>
+          <div style="text-align:left;max-width:420px;margin:0 auto">${bullets}</div>
+          <p style="font-weight:800;margin:18px 0;color:${o.pc}">${Super.esc(o.cta)}</p>${contact}${credit}</div></div>`;
+      }
+      if (o.layout === 'sidebar') {
+        return `<div class="sc-flyer" style="${base};background:#fff;color:#0f172a;padding:0;display:flex;overflow:hidden">
+          <div style="width:34%;background:linear-gradient(160deg,${o.pc},${o.ac});color:${o.text};padding:24px;text-align:center;display:flex;flex-direction:column;justify-content:center">
+            <img src="${logo}" style="width:64px;height:64px;border-radius:12px;background:#fff;object-fit:contain;margin:0 auto" onerror="this.style.display='none'">
+            <h1 style="font-size:1.3rem;margin:10px 0 4px">${Super.esc(o.title)}</h1><p style="font-size:.78rem;opacity:.95">${Super.esc(o.tagline)}</p></div>
+          <div style="flex:1;padding:26px"><h2 style="letter-spacing:1.5px;color:${o.ac};margin:0 0 12px">${Super.esc(o.headline)}</h2>${bullets}
+          <p style="font-weight:800;margin:16px 0;color:${o.pc}">${Super.esc(o.cta)}</p>${contact}${credit}</div></div>`;
+      }
+      // gradient (default)
+      return `<div class="sc-flyer" style="${base};background:linear-gradient(135deg,${o.pc},${o.ac});text-align:center">
+        <img src="${logo}" style="width:80px;height:80px;border-radius:16px;background:#fff;object-fit:contain" onerror="this.style.display='none'">
+        <h1 style="font-size:2rem;margin:14px 0 4px">${Super.esc(o.title)}</h1>
+        <p style="opacity:.95">${Super.esc(o.tagline)}</p>
+        <h2 style="letter-spacing:2px;margin:16px 0 0">${Super.esc(o.headline)}</h2>
+        <div style="background:rgba(255,255,255,.15);border-radius:14px;padding:20px;margin:18px 0;text-align:left">${bullets}</div>
+        <p style="font-weight:800;margin:0 0 12px">${Super.esc(o.cta)}</p>${contact}${credit}</div>`;
+    },
+    print(o) {
       const w = window.open('', '_blank');
-      w.document.write('<html><head><title>Flyer</title></head><body style="display:flex;justify-content:center;padding:20px">' + this.html() + '<script>window.onload=()=>window.print()<\/script></body></html>');
+      w.document.write('<html><head><title>Flyer</title></head><body style="display:flex;justify-content:center;padding:20px">' + this.html(o) + '<script>window.onload=()=>window.print()<\/script></body></html>');
       w.document.close();
     }
   },

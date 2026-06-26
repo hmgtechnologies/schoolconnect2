@@ -32,6 +32,7 @@ const Generator = {
     const CRUD_JS = await fetchFile('assets/js/crud.js');
     const ENTERPRISE_SCHEMA_SQL = await fetchFile('database/enterprise-schema.sql');
     const ENHANCEMENTS_SCHEMA_SQL = await fetchFile('database/enhancements-schema.sql');
+    const UPDATE_V1_SCHEMA_SQL = await fetchFile('database/update-v1-schema.sql');
     const PREVIEW_JS = await fetchFile('assets/js/preview.js');
     const SAMPLE_BANK_CSV = await fetchFile('database/further_maths_sample.csv');
     const HEADERS_FILE = await fetchFile('_headers');
@@ -156,6 +157,9 @@ const Generator = {
     zip.file('database/reportcard-schema.sql', REPORTCARD_SCHEMA_SQL || '');
     zip.file('database/enterprise-schema.sql', ENTERPRISE_SCHEMA_SQL || '');
     zip.file('database/enhancements-schema.sql', ENHANCEMENTS_SCHEMA_SQL || '');
+    zip.file('database/update-v1-schema.sql', UPDATE_V1_SCHEMA_SQL || '');
+    zip.file('database/students_import_template.csv', Generator.studentsImportTemplate());
+    zip.file('students_import_template.csv', Generator.studentsImportTemplate()); // app-root copy for the in-app download link
     zip.file('database/sample-questions.csv',  Generator.sampleCSV());
     if (SAMPLE_BANK_CSV) zip.file('database/sample-question-bank.csv', SAMPLE_BANK_CSV);
     /* Re-added (cumulative): deployment hardening + offline + msapplication tile */
@@ -187,6 +191,7 @@ const Generator = {
     zip.file('apply.html',         Generator.pageApply(cfg));        // PUBLIC application form (no auth)
     /* ✨ v3 super-feature pages */
     zip.file('idcards.html',       Generator.pageIdCards(cfg));      // QR ID-card generator
+    if (cfg.modules.includes('digital_library')) zip.file('digital_library.html', Generator.pageDigitalLibrary(cfg)); // read + quiz
     zip.file('certificates.html',  Generator.pageCertificates(cfg)); // verifiable certificates
     zip.file('flyer.html',         Generator.pageFlyer(cfg));        // marketing flyer
     /* ✨ FINAL v2 enterprise pages */
@@ -198,7 +203,7 @@ const Generator = {
     zip.file('settings.html',      Generator.pageSettings(cfg));     // 2FA + i18n + a11y
 
     /* Per-module pages (the ones that exist in the registry) */
-    const pageIds = ['students','staff','classes','attendance','results','timetable','sow','cbt','assignments','library','conduct','health','promotion','fees','finance','leave','visitors','transport','announcements','events','messages','inbox','complaints','broadcast','gallery','eresources','birthdays','idcards','reports','directory','departments','parents','admissions','hr','hostel','alumni','inventory','certificates','analytics','lms','gamification','cafeteria','financial_aid','front_desk','career_counseling','document_builder','fleet_tracking','facility_booking','compliance',
+    const pageIds = ['students','staff','classes','subjects','attendance','results','timetable','sow','cbt','assignments','library','conduct','health','promotion','fees','finance','leave','visitors','transport','announcements','events','messages','inbox','complaints','broadcast','gallery','eresources','birthdays','idcards','reports','directory','departments','parents','admissions','hr','hostel','alumni','inventory','certificates','analytics','lms','gamification','cafeteria','financial_aid','front_desk','career_counseling','document_builder','fleet_tracking','facility_booking','compliance',
       // ✨ Gen v8 new modules
       'activity_log','lesson_plans','behaviour','support_plans','donations','substitutions','helpdesk','payments_online','school_calendar','lost_found','parent_meeting','book_request',
       // ✨ Gen v2 dedicated modules
@@ -207,7 +212,7 @@ const Generator = {
       'timetable-generator','checkin','diary','surveys','menu','settings','approvals'];
     // These have dedicated, full-featured pages above — don't overwrite with the generic template.
     const DEDICATED = ['cbt','analytics','report-cards','admin-data','idcards','certificates','flyer',
-      'timetable-generator','checkin','diary','surveys','menu','settings','approvals','admissions'];
+      'timetable-generator','checkin','diary','surveys','menu','settings','approvals','admissions','digital_library'];
     pageIds.forEach(id => {
       if (DEDICATED.includes(id)) return;
       if (cfg.modules.includes(id) || ['dashboard','voting','notifications'].includes(id)) {
@@ -1171,6 +1176,14 @@ Still stuck? Contact HMG Concepts: ${cfg.hmgLink}
   /* ====================================================================
      v2 — sample CSV question file shipped in the ZIP
      ==================================================================== */
+  /* CSV bulk-import template for students (issue 11). Headers match the
+     students table field keys exactly so the in-browser importer maps them. */
+  studentsImportTemplate() {
+    return 'full_name,class,arm,gender,date_of_birth,guardian_name,guardian_phone,guardian_email,address,campus\n' +
+      'John Doe,JSS1,A,male,2013-05-12,Mr Doe,08030000001,doe@example.com,12 School Rd,Main Campus\n' +
+      'Jane Smith,JSS1,B,female,2013-09-03,Mrs Smith,08030000002,smith@example.com,3 Park Ave,Main Campus\n';
+  },
+
   sampleCSV() {
     return 'Question,A,B,C,D,CorrectAnswer,Explanation,Type,Tolerance,Unit,Accept,MRQ_AON,Pairs,Items,Difficulty,Tags,Section\n' +
       '"What is 5 + 7?",10,11,12,13,C,"Simple addition.",mcq,,,,,,,Easy,Arithmetic,Numbers\n' +
@@ -1699,32 +1712,153 @@ const DataTools = {
         <strong>QR code</strong> (encodes the person's ID for attendance scanning). Print directly from the browser.</p>
       </div>
       <div class="card" style="margin-bottom:16px" data-staff-only>
+        <div class="form-group"><label>Card type</label>
+          <select class="form-select" id="ic-type" onchange="ICUI.switchType(this.value)" style="max-width:240px">
+            <option value="student">Student card</option>
+            <option value="staff">Staff card</option>
+          </select>
+        </div>
         <div class="grid grid-2">
-          <div class="form-group"><label>Pick a student</label><select class="form-select" id="ic-student" onchange="ICUI.pick(this.value)"><option value="">— choose —</option></select></div>
+          <div class="form-group"><label>Pick a <span id="ic-pick-label">student</span></label><select class="form-select" id="ic-student" onchange="ICUI.pick(this.value)"><option value="">— choose —</option></select></div>
           <div class="form-group"><label>…or enter manually</label><input class="form-input" id="ic-name" placeholder="Full name" oninput="ICUI.render()"></div>
-          <div class="form-group"><label>Class / Role</label><input class="form-input" id="ic-class" placeholder="JSS1" oninput="ICUI.render()"></div>
-          <div class="form-group"><label>ID / Admission no</label><input class="form-input" id="ic-id" placeholder="ADM/001" oninput="ICUI.render()"></div>
-          <div class="form-group" style="grid-column:1/-1"><label>Photo URL (auto-filled from student record; Google Drive links supported)</label><input class="form-input" id="ic-photo" placeholder="https://drive.google.com/file/d/..." oninput="ICUI.render()"></div>
+          <div class="form-group"><label id="ic-class-label">Class</label><input class="form-input" id="ic-class" placeholder="JSS1" oninput="ICUI.render()"></div>
+          <div class="form-group"><label>ID / Admission / Staff no</label><input class="form-input" id="ic-id" placeholder="(auto)" oninput="ICUI.render()"></div>
+          <div class="form-group"><label>Gender</label><input class="form-input" id="ic-gender" placeholder="male/female" oninput="ICUI.render()"></div>
+          <div class="form-group"><label>Phone</label><input class="form-input" id="ic-phone" placeholder="0803..." oninput="ICUI.render()"></div>
+          <div class="form-group" id="ic-dept-wrap" style="display:none"><label>Department / Designation</label><input class="form-input" id="ic-dept" oninput="ICUI.render()"></div>
+          <div class="form-group"><label>Blood group (optional)</label><input class="form-input" id="ic-blood" placeholder="O+" oninput="ICUI.render()"></div>
+          <div class="form-group" style="grid-column:1/-1"><label>Photo URL (auto-filled; Google Drive links supported, no upload)</label><input class="form-input" id="ic-photo" placeholder="https://drive.google.com/file/d/..." oninput="ICUI.render()"></div>
         </div>
         <div style="display:flex;gap:10px;flex-wrap:wrap">
           <button class="btn btn-primary" onclick="ICUI.print()">🖨 Print ID Card</button>
-          <button class="btn btn-outline" onclick="ICUI.printAll()">🖨 Print ALL students</button>
+          <button class="btn btn-outline" onclick="ICUI.printAll()">🖨 Print ALL <span id="ic-all-label">students</span></button>
         </div>
       </div>
       <div id="ic-preview" style="display:flex;justify-content:center"></div>`;
     return T.shell(cfg, 'Digital ID Cards', body, { requireRole: 'staff' })
       .replace('</body></html>', `<script>
-const ICUI={ cur:{}, all:[],
-  async load(){ const sel=document.getElementById('ic-student'); if(!sb||!sel)return; const {data}=await sb.from('students').select('id,full_name,class,admission_no,photo_url').order('full_name').limit(1000); ICUI.all=data||[]; (data||[]).forEach(s=>{ const o=document.createElement('option'); o.value=JSON.stringify(s); o.textContent=s.full_name+' ('+(s.class||'')+')'; sel.appendChild(o); }); },
-  pick(v){ if(!v)return; const s=JSON.parse(v); document.getElementById('ic-name').value=s.full_name||''; document.getElementById('ic-class').value=s.class||''; document.getElementById('ic-id').value=s.admission_no||''; document.getElementById('ic-photo').value=s.photo_url||''; this.cur=s; this.render(); },
-  person(){ return { full_name:document.getElementById('ic-name').value, class:document.getElementById('ic-class').value, admission_no:document.getElementById('ic-id').value, photo_url:document.getElementById('ic-photo').value||this.cur.photo_url, type:'student' }; },
+const ICUI={ cur:{}, all:[], kind:'student',
+  switchType(t){ this.kind=t; this.all=[]; const sel=document.getElementById('ic-student'); sel.innerHTML='<option value="">— choose —</option>';
+    document.getElementById('ic-pick-label').textContent=t; document.getElementById('ic-class-label').textContent=(t==='staff'?'Type':'Class');
+    document.getElementById('ic-dept-wrap').style.display=(t==='staff'?'block':'none');
+    document.getElementById('ic-all-label').textContent=(t==='staff'?'staff':'students');
+    this.load(); this.render(); },
+  async load(){ const sel=document.getElementById('ic-student'); if(!sb||!sel)return;
+    if(this.kind==='staff'){ const {data}=await sb.from('staff').select('id,full_name,staff_no,role,department,staff_type,gender,phone,photo_url').order('full_name').limit(1000); ICUI.all=data||[]; (data||[]).forEach(s=>{ const o=document.createElement('option'); o.value=JSON.stringify(s); o.textContent=s.full_name+' ('+(s.role||s.staff_type||'')+')'; sel.appendChild(o); }); }
+    else { const {data}=await sb.from('students').select('id,full_name,class,arm,admission_no,gender,photo_url').order('full_name').limit(1000); ICUI.all=data||[]; (data||[]).forEach(s=>{ const o=document.createElement('option'); o.value=JSON.stringify(s); o.textContent=s.full_name+' ('+(s.class||'')+')'; sel.appendChild(o); }); } },
+  pick(v){ if(!v)return; const s=JSON.parse(v); this.cur=s;
+    document.getElementById('ic-name').value=s.full_name||'';
+    document.getElementById('ic-class').value=(this.kind==='staff'?(s.staff_type||''):(s.class||''));
+    document.getElementById('ic-id').value=(this.kind==='staff'?(s.staff_no||''):(s.admission_no||''));
+    document.getElementById('ic-gender').value=s.gender||'';
+    document.getElementById('ic-phone').value=s.phone||'';
+    if(document.getElementById('ic-dept')) document.getElementById('ic-dept').value=(s.department||s.role||'');
+    document.getElementById('ic-photo').value=s.photo_url||''; this.render(); },
+  person(){ const base={ full_name:document.getElementById('ic-name').value, photo_url:document.getElementById('ic-photo').value||this.cur.photo_url, gender:document.getElementById('ic-gender').value, phone:document.getElementById('ic-phone').value, blood_group:document.getElementById('ic-blood').value, type:this.kind };
+    if(this.kind==='staff'){ base.staff_no=document.getElementById('ic-id').value; base.staff_type=document.getElementById('ic-class').value; base.role=(document.getElementById('ic-dept')?document.getElementById('ic-dept').value:'')||this.cur.role; base.department=this.cur.department; }
+    else { base.admission_no=document.getElementById('ic-id').value; base.class=document.getElementById('ic-class').value; base.arm=this.cur.arm; }
+    return base; },
   render(){ document.getElementById('ic-preview').innerHTML = window.Super?Super.idcard.html(this.person()):''; },
   print(){ if(window.Super) Super.idcard.print(this.person()); },
-  printAll(){ if(!window.Super||!ICUI.all.length){toast('No students loaded','warning');return;}
-    const cards=ICUI.all.map(s=>'<div style="margin:8px;display:inline-block">'+Super.idcard.html({full_name:s.full_name,class:s.class,admission_no:s.admission_no,photo_url:s.photo_url,type:'student'})+'</div>').join('');
+  printAll(){ if(!window.Super||!ICUI.all.length){toast('Nothing loaded','warning');return;}
+    const cards=ICUI.all.map(s=> ICUI.kind==='staff'
+      ? '<div style="margin:8px;display:inline-block">'+Super.idcard.html({full_name:s.full_name,staff_no:s.staff_no,role:s.role,department:s.department,staff_type:s.staff_type,gender:s.gender,phone:s.phone,photo_url:s.photo_url,type:'staff'})+'</div>'
+      : '<div style="margin:8px;display:inline-block">'+Super.idcard.html({full_name:s.full_name,class:s.class,arm:s.arm,admission_no:s.admission_no,gender:s.gender,photo_url:s.photo_url,type:'student'})+'</div>').join('');
     const w=window.open('','_blank'); w.document.write('<html><head><title>ID Cards</title></head><body style="display:flex;flex-wrap:wrap;padding:10px">'+cards+'<script>window.onload=()=>window.print()<\\/script></body></html>'); w.document.close(); }
 };
 document.addEventListener('DOMContentLoaded',()=>{ ICUI.load(); ICUI.render(); }); ICUI.load(); ICUI.render();
+</script></body></html>`);
+  },
+
+  /* ====================================================================
+     UPDATE V1 — DIGITAL LIBRARY (issue 9)
+     Teachers post an online book/link + optional comprehension questions.
+     Students open the link, take the quiz; the auto-marked score is stored and
+     can count toward their grade. No file uploads (links only -> free tier).
+     ==================================================================== */
+  pageDigitalLibrary(cfg) {
+    const body = `
+      <div class="card" style="margin-bottom:16px"><p style="color:var(--gray-600);margin:0">
+        📚 <strong>Digital Library.</strong> Teachers add a book/resource by pasting its online link (Google Drive, web, etc.)
+        and may attach a few comprehension questions. Students read the book, answer the questions, and their
+        auto-marked score is recorded — it can count toward their continuous-assessment grade. No files are uploaded
+        (links only), so it stays free on Supabase.</p></div>
+
+      <div class="card" style="margin-bottom:16px" data-staff-only>
+        <h3>➕ Add / set a reading (teacher)</h3>
+        <div class="grid grid-2">
+          <div class="form-group"><label>Title *</label><input class="form-input" id="dl-title" placeholder="e.g. Things Fall Apart — Chapters 1-3"></div>
+          <div class="form-group"><label>Author</label><input class="form-input" id="dl-author"></div>
+          <div class="form-group"><label>Subject</label><select class="form-select" id="dl-subject"><option value="">—</option></select></div>
+          <div class="form-group"><label>Assigned class</label><select class="form-select" id="dl-class"><option value="">—</option></select></div>
+          <div class="form-group" style="grid-column:1/-1"><label>Read link (Drive / web) *</label><input class="form-input" id="dl-link" placeholder="https://drive.google.com/file/d/..."></div>
+          <div class="form-group" style="grid-column:1/-1"><label>Instructions</label><textarea class="form-input" id="dl-inst" rows="2"></textarea></div>
+          <div class="form-group"><label>Due date</label><input class="form-input" type="date" id="dl-due"></div>
+          <div class="form-group"><label>Max score (counts to grade)</label><input class="form-input" type="number" id="dl-max" value="10"></div>
+        </div>
+        <h4 style="margin:6px 0">❓ Comprehension questions (optional, auto-marked)</h4>
+        <div id="dl-qs"></div>
+        <button class="btn btn-outline btn-sm" onclick="DL.addQ()">+ Add question</button>
+        <div style="margin-top:12px"><button class="btn btn-primary" onclick="DL.save()">💾 Save reading</button></div>
+      </div>
+
+      <div class="card">
+        <h3>📖 Readings</h3>
+        <div id="dl-list"><span class="pulse">Loading…</span></div>
+      </div>`;
+    return T.shell(cfg, 'Digital Library', body, { requireRole: 'any' })
+      .replace('</body></html>', `<script>
+const DL={ qs:[],
+  async init(){ if(!sb)return;
+    try{ const {data:subs}=await sb.from('subjects').select('name').order('name'); (subs||[]).forEach(x=>{var o=document.createElement('option');o.textContent=x.name;document.getElementById('dl-subject')&&document.getElementById('dl-subject').appendChild(o);}); }catch(e){}
+    try{ const {data:cls}=await sb.from('classes').select('name').order('name'); (cls||[]).forEach(x=>{var o=document.createElement('option');o.textContent=x.name;document.getElementById('dl-class')&&document.getElementById('dl-class').appendChild(o);}); }catch(e){}
+    this.render(); this.list();
+  },
+  addQ(){ this.qs.push({q:'',options:['','','',''],answer:''}); this.render(); },
+  render(){ var box=document.getElementById('dl-qs'); if(!box)return; box.innerHTML=this.qs.map((q,i)=>
+    '<div class="card" style="background:#f8fafc;margin:8px 0;padding:10px">'+
+    '<div class="form-group"><label>Q'+(i+1)+'</label><input class="form-input" value="'+esc(q.q)+'" oninput="DL.qs['+i+'].q=this.value"></div>'+
+    '<div class="grid grid-2">'+q.options.map((op,j)=>'<input class="form-input" placeholder="Option '+(j+1)+'" value="'+esc(op)+'" oninput="DL.qs['+i+'].options['+j+']=this.value">').join('')+'</div>'+
+    '<div class="form-group"><label>Correct answer (exact option text)</label><input class="form-input" value="'+esc(q.answer)+'" oninput="DL.qs['+i+'].answer=this.value"></div>'+
+    '<button class="btn btn-sm btn-outline" onclick="DL.qs.splice('+i+',1);DL.render()">Remove</button></div>').join(''); },
+  async save(){ if(!sb){toast('DB not configured','warning');return;}
+    var title=document.getElementById('dl-title').value, link=document.getElementById('dl-link').value;
+    if(!title||!link){toast('Title and read link are required','warning');return;}
+    var rec={ title:title, author:document.getElementById('dl-author').value, subject:document.getElementById('dl-subject').value,
+      class:document.getElementById('dl-class').value, read_link:link, instructions:document.getElementById('dl-inst').value,
+      due_date:document.getElementById('dl-due').value||null, has_quiz:this.qs.length>0, questions:this.qs,
+      max_score:Number(document.getElementById('dl-max').value||0) };
+    var {error}=await sb.from('digital_library').insert(rec);
+    if(error){toast(error.message,'danger',6000);return;} toast('Reading saved ✓','success'); this.qs=[]; this.render(); this.list();
+  },
+  _books:[],
+  async list(){ var box=document.getElementById('dl-list'); if(!sb){box.innerHTML='<p>DB not configured.</p>';return;}
+    var {data}=await sb.from('digital_library').select('*').order('created_at',{ascending:false}).limit(200);
+    if(!data||!data.length){box.innerHTML='<p style="color:var(--gray-500)">No readings yet.</p>';return;}
+    this._books=data;
+    box.innerHTML=data.map((b,i)=>'<div class="card" style="margin:8px 0"><div style="display:flex;justify-content:space-between;flex-wrap:wrap;gap:8px;align-items:center">'+
+      '<div><strong>'+esc(b.title)+'</strong> '+(b.subject?'<span class="badge">'+esc(b.subject)+'</span> ':'')+(b.class?'<span class="badge">'+esc(b.class)+'</span>':'')+
+      '<div style="color:var(--gray-500);font-size:.85rem">'+esc(b.instructions||'')+(b.due_date?' · Due '+esc(b.due_date):'')+'</div></div>'+
+      '<div style="white-space:nowrap"><a class="btn btn-sm btn-primary" href="'+esc(DL.drive(b.read_link))+'" target="_blank" rel="noopener">📖 Read</a> '+
+      (b.has_quiz?'<button class="btn btn-sm btn-outline" onclick="DL.quiz('+i+')">📝 Take quiz</button>':'')+'</div></div></div>').join('');
+  },
+  drive(u){ if(!u)return '#'; var m=u.match(/drive\\.google\\.com\\/file\\/d\\/([^/]+)/); return m?('https://drive.google.com/file/d/'+m[1]+'/view'):u; },
+  quiz(i){ var b=this._books[i]; if(!b)return; var qs=b.questions||[];
+    if(!qs.length){toast('No questions on this reading.','info');return;}
+    var html=qs.map((q,j)=>'<div class="form-group"><label>Q'+(j+1)+'. '+esc(q.q)+'</label>'+
+      (q.options||[]).filter(Boolean).map(op=>'<label style="display:block"><input type="radio" name="dq'+j+'" value="'+esc(op)+'"> '+esc(op)+'</label>').join('')+'</div>').join('');
+    openModal('Quiz: '+esc(b.title), html, '<button class="btn btn-outline" onclick="closeModal()">Cancel</button><button class="btn btn-primary" onclick="DL.submit('+i+')">Submit</button>');
+  },
+  async submit(i){ var b=this._books[i]; if(!b)return; var qs=b.questions||[]; var correct=0;
+    qs.forEach((q,j)=>{ var sel=document.querySelector('input[name="dq'+j+'"]:checked'); if(sel&&sel.value===q.answer) correct++; });
+    var max=Number(b.max_score||qs.length); var score=Math.round((correct/qs.length)*max*10)/10;
+    var me=(window.App&&App.user)?App.user:null; var name=(me&&me.full_name)||(window.SC_PROFILE&&SC_PROFILE.full_name)||'';
+    if(!name){ name=prompt('Enter your full name to record this score:')||''; }
+    if(sb&&name){ try{ await sb.from('reading_scores').insert({ student_name:name, subject:b.subject, class:b.class, book_id:b.id, score:score, max_score:max, source:'digital_library' }); }catch(e){} }
+    closeModal(); toast('You scored '+score+' / '+max+' — recorded ✓','success',6000);
+  }
+};
+document.addEventListener('DOMContentLoaded',()=>DL.init()); DL.init();
 </script></body></html>`);
   },
 
@@ -1806,15 +1940,49 @@ document.addEventListener('DOMContentLoaded',()=>{ CTUI.loadStudents(); CTUI.ren
   pageFlyer(cfg) {
     const body = `
       <div class="card" style="margin-bottom:16px">
-        <p style="color:var(--gray-600);margin:0">Generate a printable promotional flyer/poster for the school —
-        great for admissions drives and parent outreach. Branded with your logo, colours and contact details.</p>
-        <button class="btn btn-primary" style="margin-top:10px" onclick="if(window.Super)Super.flyer.print()">🖨 Print / Download Flyer</button>
+        <p style="color:var(--gray-600);margin:0">Design a printable promotional flyer/poster — great for admissions drives
+        and parent outreach. Choose <strong>layout, colours, fonts</strong> and edit all the text, then print or save as PDF.</p>
       </div>
-      <div id="fl-preview" style="display:flex;justify-content:center"></div>`;
+      <div class="card" style="margin-bottom:16px" data-staff-only>
+        <h3>🎨 Design</h3>
+        <div class="grid grid-2">
+          <div class="form-group"><label>Layout</label><select class="form-select" id="fl-layout" onchange="FLUI.render()">
+            <option value="gradient">Gradient (bold)</option><option value="banner">Banner top</option>
+            <option value="sidebar">Sidebar</option><option value="minimal">Minimal (white)</option></select></div>
+          <div class="form-group"><label>Font</label><select class="form-select" id="fl-font" onchange="FLUI.render()">
+            <option value="system-ui,'Segoe UI',Arial,sans-serif">Sans (modern)</option>
+            <option value="Georgia,'Times New Roman',serif">Serif (classic)</option>
+            <option value="'Trebuchet MS',sans-serif">Trebuchet</option>
+            <option value="'Courier New',monospace">Mono</option></select></div>
+          <div class="form-group"><label>Primary colour</label><input class="form-input" type="color" id="fl-pc" value="${cfg.themePrimary}" oninput="FLUI.render()"></div>
+          <div class="form-group"><label>Accent colour</label><input class="form-input" type="color" id="fl-ac" value="${cfg.themeAccent}" oninput="FLUI.render()"></div>
+          <div class="form-group"><label>Text colour (gradient layouts)</label><input class="form-input" type="color" id="fl-text" value="#ffffff" oninput="FLUI.render()"></div>
+        </div>
+        <h3 style="margin-top:14px">✏️ Content</h3>
+        <div class="grid grid-2">
+          <div class="form-group"><label>Title</label><input class="form-input" id="fl-title" value="${T.esc(cfg.schoolName || 'Our School')}" oninput="FLUI.render()"></div>
+          <div class="form-group"><label>Tagline</label><input class="form-input" id="fl-tag" value="${T.esc(cfg.schoolMotto || 'Excellence in Education')}" oninput="FLUI.render()"></div>
+          <div class="form-group"><label>Headline</label><input class="form-input" id="fl-head" value="ADMISSION IN PROGRESS" oninput="FLUI.render()"></div>
+          <div class="form-group"><label>Call to action</label><input class="form-input" id="fl-cta" value="Apply today — limited spaces!" oninput="FLUI.render()"></div>
+        </div>
+        <div class="form-group"><label>Bullet points (one per line)</label><textarea class="form-input" id="fl-bullets" rows="4" oninput="FLUI.render()">Online results & report cards
+CBT / online exams from any device
+Fees, attendance & parent updates
+Installable app + instant notifications</textarea></div>
+        <button class="btn btn-primary" onclick="FLUI.print()">🖨 Print / Save as PDF</button>
+      </div>
+      <div id="fl-preview" style="display:flex;justify-content:center;overflow:auto"></div>`;
     return T.shell(cfg, 'Marketing Flyer', body, { requireRole: 'staff' })
       .replace('</body></html>', `<script>
-document.addEventListener('DOMContentLoaded',()=>{ const p=document.getElementById('fl-preview'); if(p&&window.Super) p.innerHTML=Super.flyer.html(); });
-if(window.Super){ const p=document.getElementById('fl-preview'); if(p) p.innerHTML=Super.flyer.html(); }
+const FLUI={
+  v(id){ var e=document.getElementById(id); return e?e.value:''; },
+  opts(){ return { layout:this.v('fl-layout'), font:this.v('fl-font'), pc:this.v('fl-pc'), ac:this.v('fl-ac'), text:this.v('fl-text'),
+    title:this.v('fl-title'), tagline:this.v('fl-tag'), headline:this.v('fl-head'), cta:this.v('fl-cta'),
+    bullets:this.v('fl-bullets').split('\\n').map(function(x){return x.trim();}).filter(Boolean) }; },
+  render(){ var p=document.getElementById('fl-preview'); if(p&&window.Super) p.innerHTML=Super.flyer.html(this.opts()); },
+  print(){ if(window.Super) Super.flyer.print(this.opts()); }
+};
+document.addEventListener('DOMContentLoaded',()=>FLUI.render()); FLUI.render();
 </script></body></html>`);
   },
 
@@ -1846,6 +2014,7 @@ if(window.Super){ const p=document.getElementById('fl-preview'); if(p) p.innerHT
       cbt: () => Generator.pageCBT(cfg), 'report-cards': () => Generator.pageReportCards(cfg),
       analytics: () => Generator.pageAnalytics(cfg), 'admin-data': () => Generator.pageAdminData(cfg), approvals: () => Generator.pageApprovals(cfg), admissions: () => Generator.pageAdmissions(cfg),
       idcards: () => Generator.pageIdCards(cfg), certificates: () => Generator.pageCertificates(cfg),
+      digital_library: () => Generator.pageDigitalLibrary(cfg),
       flyer: () => Generator.pageFlyer(cfg)
     };
     ['voting', 'notifications'].forEach(id => {
