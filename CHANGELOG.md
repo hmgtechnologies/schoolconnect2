@@ -5,6 +5,29 @@ Format loosely follows [Keep a Changelog](https://keepachangelog.com/).
 
 ---
 
+## [Update v1] — 2026-06-26 — "15 client fixes: separate Classes/Subjects, staff details, digital library, auto-promotion, CSV import, PDF export, pro ID cards, flyer designer" (cumulative)
+
+Resolves all 15 newly-reported client issues + enterprise enhancements. **Nothing removed** (only `database/update-v1-schema.sql` added; everything else enhanced). Free tools, no AI. Verified: **143/143 checks pass**, all SQL clean + idempotent + upgrade-safe on PG17, 0 inline-script errors.
+
+- **Subjects is its own page** and each subject maps to a **teacher chosen from staff** (term/session via lookups). (#1)
+- **Classes and Subjects are separate pages**; **class teacher = dropdown of teaching staff** (no typing). (#2)
+- **Everything registered is a dropdown** (students, staff, classes, subjects, terms, sessions, departments); auto-fill on pick. (#3)
+- **Staff form** adds teaching/non-teaching, subject taught, qualification, religion, marital status, gender, DOB, address, photo (Drive); **approved teacher sign-ups auto-extracted into Staff** via DB trigger. (#4)
+- **Auto admission number** field is read-only/auto; **auto staff number** added (`STF/2026/0001`). (#5)
+- **Attendance "Pull from QR Check-in"** marks a whole class present in one click. (#6)
+- **Scheme of Work** per teacher/subject + **weekly "Taught this week" confirmation**. (#7)
+- **Clearer module names/descriptions** + promotion explainer banner. (#8)
+- **Digital Library**: teacher posts a read link + optional auto-marked quiz; **score counts toward grade** (`reading_scores`). (#9)
+- **Automated promotion** by exam benchmark → editable drafts → admin **Apply**. (#10)
+- **Student dropdowns grouped by class** (optgroup) + **bulk CSV import** (file never stored) + downloadable template. (#11)
+- **Export CSV and PDF** on every module page. (#12)
+- **Drive-link signatures/photos, no direct uploads** (protects Supabase free tier). (#13)
+- **Professional ID cards** with full details, **plus staff cards** and Print-All. (#14)
+- **Flyer designer**: layouts, fonts, colours, fully editable text + live preview. (#15)
+- Extras: reference filters (teaching-only teacher pickers), promotion ladder, chunked-safe import, branded PDF, idempotent upgrade migration.
+
+---
+
 ## [Connect Repair v3] — 2026-06-25 — "16 fixes: dropdowns, auto-IDs, reports, admissions, designer" (cumulative)
 
 Resolves 16 client-reported issues + enhancements. **Nothing removed.** Free tools, no AI.
